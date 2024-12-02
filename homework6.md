@@ -1,19 +1,13 @@
----
-title: "Homework6"
-author: "Yunjia Liu"
-date: "2024-12-02"
-output: github_document
----
-
-```{r setup, include=FALSE}
-library(tidyverse)
-library(broom)
-```
+Homework6
+================
+Yunjia Liu
+2024-12-02
 
 ## Probelm 1
 
 Load the dataset
-```{r}
+
+``` r
 weather_df = 
   rnoaa::meteo_pull_monitors(
     c("USW00094728"),
@@ -27,9 +21,15 @@ weather_df =
   select(name, id, everything())
 ```
 
+    ## using cached file: /Users/veronica/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USW00094728.dly
 
-A function to calculate the r-squared and log(beta0 * beta1)
-```{r}
+    ## date created (size, mb): 2024-09-26 10:17:42.269536 (8.651)
+
+    ## file min/max dates: 1869-01-01 / 2024-09-30
+
+A function to calculate the r-squared and log(beta0 \* beta1)
+
+``` r
 compute_stats = function(data) {
   model <- lm(tmax ~ tmin, data = data)
   glance_model <- glance(model)
@@ -42,14 +42,15 @@ compute_stats = function(data) {
 }
 ```
 
-```{r}
+``` r
 boot_sample = function(df) {
   sample_frac(df, replace = TRUE)
 }
 ```
 
 Perform bootstrap
-```{r}
+
+``` r
 n_boot = 5000
 set.seed(123)
 
@@ -61,8 +62,7 @@ boot_straps =
   )
 ```
 
-
-```{r}
+``` r
 # Extract results into a tidy format
 boot_results <- boot_straps %>%
   unnest_wider(stats)  # Unpack the results
@@ -70,15 +70,4 @@ boot_results <- boot_straps %>%
 
 ## Problem 2
 
-```{r}
-
-
-```
-
-
 ## Problem 3
-
-```{r}
-
-```
-
