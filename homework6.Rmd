@@ -7,7 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(broom)
+library(modelr)
 ```
 
 ## Probelm 1
@@ -20,11 +20,11 @@ weather_df =
     c("USW00094728"),
     var = c("PRCP", "TMIN", "TMAX"), 
     date_min = "2017-01-01",
-    date_max = "2017-12-31") %>%
+    date_max = "2017-12-31") |>
   mutate(
     name = recode(id, USW00094728 = "CentralPark_NY"),
     tmin = tmin / 10,
-    tmax = tmax / 10) %>%
+    tmax = tmax / 10) |>
   select(name, id, everything())
 ```
 
@@ -116,6 +116,7 @@ homocide_data = read_csv("./data/homicide-data.csv",,na = c("", "NA", "N/A","Unk
 
 homocide_data =
   homocide_data |>
+  janitor::clean_names() |>
   mutate(
     city_state = paste(city, state, sep = ", "),
     solved = ifelse(disposition == "Closed by arrest", 1, 0),
@@ -217,6 +218,86 @@ city_models |>
 
 ## Problem 3
 ```{r}
+birthweight_data = read_csv("./data/birthweight.csv")
 
+# Convert categorical variables to factors
+birthweight_data = birthweight_data |>
+  mutate(
+    babysex = factor(babysex, levels = c(1, 2), labels = c("Male", "Female")),
+    malform = factor(malform, levels = c(0, 1), labels = c("Absent", "Present")),
+    frace = factor(frace),
+    mrace = factor(mrace)
+  )
+
+summary(birthweight_data)
+
+# Check for missing data
+colSums(is.na(birthweight_data))
+
+# View structure of the dataset
+str(birthweight_data)
+```
+
+
+```{r}
+# Fit the model
+birthweight_model = lm(bwt ~ gaweeks + blength + bhead + delwt + momage + smoken, 
+                        data = birthweight_data)
+
+# View the summary of the model
+summary(birthweight_model)
+
+# Add predictions and residuals to the dataset
+birthweight_data = birthweight_data |>
+  add_predictions(birthweight_model) |>
+  add_residuals(birthweight_model)
+
+# Plot residuals against fitted values
+ggplot(birthweight_data, aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Residuals vs Fitted Values", 
+       x = "Fitted Values", 
+       y = "Residuals") +
+  theme_minimal()
+
+```
+
+
+```{r}
+model1 = lm(bwt ~ blength + gaweeks, data = birthweight_data)
+summary(model1)
+
+model2 = lm(bwt ~ bhead + blength + babysex + bhead * blength + blength * babysex + bhead * babysex + bhead * blength * babysex, data = birthweight_data)
+summary(model2)
+
+```
+
+
+
+
+```{r}
+cv_results = 
+  crossv_mc(birthweight_data, n = 100) |>
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble),
+    model_proposed  = map(train, \(df) lm(bwt ~ gaweeks + blength + bhead + delwt + momage + smoken, data = birthweight_data)),
+    model1  = map(train, \(df) lm(bwt ~ blength + gaweeks, data = birthweight_data)),
+    model2  = map(train, \(df) lm(bwt ~ bhead + blength + babysex + bhead * blength + blength * babysex + bhead * babysex + bhead * blength * babysex, data = birthweight_data)),
+    mse_proposed = map2_dbl(model_proposed, test, \(mod, df) rmse(model = mod, data = birthweight_data)),
+    mse_model1 = map2_dbl(model1, test, \(mod, df) rmse(model = mod, data = birthweight_data)),
+    mse_model2 = map2_dbl(model2, test, \(mod, df) rmse(model = mod, data = birthweight_data))
+  )
+  
+# Summarize mean squared error for each model
+cv_summary <- cv_results %>%
+  summarize(
+    mse_proposed = mean(mse_proposed),
+    mse_model1 = mean(mse_model1),
+    mse_model2 = mean(mse_model2)
+  )
+
+cv_summary |> knitr::kable(digits = 3)
 ```
 
