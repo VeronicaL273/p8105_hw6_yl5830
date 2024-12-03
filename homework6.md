@@ -124,11 +124,11 @@ ggplot(boot_results, aes(x = log_beta0_beta1)) +
 1.  Load the dataset and mutate the variables according to the
     requirement.  
 
-Create a city_state variable and a binary variable indicating whether
-the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas
-City, MO and Tulsa, AL. filter the **victim_race** to limit analysis for
-whom victim_race is white or black. Take ‘Unknown’ as na and convert the
-**victim_age**.
+    Create a city_state variable and a binary variable indicating
+    whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ;
+    and Kansas City, MO and Tulsa, AL. filter the **victim_race** to
+    limit analysis for whom victim_race is white or black. Take
+    ‘Unknown’ as na and convert the **victim_age**.
 
 ``` r
 homocide_data = read_csv("./data/homicide-data.csv",,na = c("", "NA", "N/A","Unknown"))
@@ -200,9 +200,11 @@ baltimore_or |>
 |:---------------|---------:|----------:|----------:|--------:|------:|---------:|---------:|
 | victim_sexMale |   -0.204 |     0.032 |     -6.38 |       0 | 0.816 |    0.766 |    0.868 |
 
-Logistic Regression for All Cities. run glm for each of the cities in
-your dataset, and extract the adjusted odds ratio (and CI) for solving
-homicides comparing male victims to female victims.
+4.  Logistic Regression for All Cities.  
+
+run `glm` for each of the cities in dataset, and extract the adjusted
+odds ratio (and CI) for solving homicides comparing male victims to
+female victims.
 
 ``` r
 city_models =
@@ -214,9 +216,9 @@ city_models =
     results = map(model, ~ broom::tidy(.) |> 
                     filter(term == "victim_sexMale") |> 
                     mutate(
-                      OR = exp(estimate),  # Calculate Odds Ratio
-                      CI_lower = exp(estimate - 1.96 * std.error),  # Lower CI
-                      CI_upper = exp(estimate + 1.96 * std.error)   # Upper CI
+                      OR = exp(estimate),
+                      CI_lower = exp(estimate - 1.96 * std.error),
+                      CI_upper = exp(estimate + 1.96 * std.error)
                     ))
   ) |> 
   unnest(results) |> 
@@ -276,8 +278,8 @@ city_models |>
 | Tulsa, OK          | victim_sexMale | 0.976 |    0.614 |    1.552 |   0.917 |
 | Washington, DC     | victim_sexMale | 0.691 |    0.469 |    1.018 |   0.062 |
 
-visualize the results by plotting the ORs and confidence intervals for
-each city and organize cities according to estimated OR.
+5.  Visualize the results by plotting the ORs and confidence intervals
+    for each city and organize cities according to estimated OR.
 
 ``` r
 city_models |>
@@ -291,7 +293,27 @@ city_models |>
     x = "City",
     y = "Adjusted Odds Ratio (Male vs. Female Victims)"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
 ```
 
 ![](homework6_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+- The adjusted odds ratios (ORs) for solving homicides comparing male
+  victims to female victims vary widely across cities, indicating
+  differences in how male and female homicide cases are resolved
+  depending on the location. Cities like Albuquerque, NM, Stockton, CA,
+  and Fresno, CA show ORs greater than 2, suggesting that male victim
+  cases are much more likely to be solved compared to female victim
+  cases in these locations. Some cities, such as Baton Rouge, LA, and
+  New York, NY, have ORs below 1, implying that female victim cases are
+  more likely to be solved compared to male victim cases in these
+  locations.
+- Certain cities (e.g., Albuquerque, NM) have wide confidence intervals,
+  suggesting a high degree of uncertainty in the OR estimates due to
+  variability or limited data. These results should be interpreted
+  cautiously.
+
+## Problem 3
