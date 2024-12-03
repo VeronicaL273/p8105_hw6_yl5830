@@ -5,7 +5,7 @@ Yunjia Liu
 
 ## Probelm 1
 
-Load the dataset
+1.  Load the dataset.
 
 ``` r
 weather_df = 
@@ -27,20 +27,27 @@ weather_df =
 
     ## file min/max dates: 1869-01-01 / 2024-09-30
 
-A function to calculate the r-squared and log(beta0 \* beta1)
+2.  A function to calculate the r-squared and log(beta0 \* beta1)  
+    First, establish a linear model between t_max and t_min. Then, we
+    calculate the desired coefficient.
 
 ``` r
 compute_stats = function(data) {
-  model <- lm(tmax ~ tmin, data = data)
-  glance_model <- glance(model)
-  coef_model <- coef(model)
+  model = lm(tmax ~ tmin, data = data)
+  glance_model = broom::glance(model)
+  tidy_model = broom::tidy(model)
   
-  r_squared <- glance_model$r.squared
-  log_beta0_beta1 <- log(abs(coef_model[1] * coef_model[2]))
+  r_squared = glance_model$r.squared
   
-  return(c(r_squared = r_squared, log_beta0_beta1 = log_beta0_beta1))
+  beta0 = tidy_model$estimate[tidy_model$term == "(Intercept)"]
+  beta1 = tidy_model$estimate[tidy_model$term == "tmin"]
+  
+  log_beta0_beta1 = log(abs(beta0 * beta1))
+  return(tibble(r_squared = r_squared, log_beta0_beta1 = log_beta0_beta1))
 }
 ```
+
+3.  A quick function to generate our bootstrap samples
 
 ``` r
 boot_sample = function(df) {
@@ -48,7 +55,7 @@ boot_sample = function(df) {
 }
 ```
 
-Perform bootstrap
+4.  Perform bootstrap and compute r^2 and log(beta0 \* beta1)
 
 ``` r
 n_boot = 5000
@@ -57,16 +64,60 @@ set.seed(123)
 boot_straps =
   tibble(strap_number = 1:n_boot) |>
   mutate(
-    strap_sample = map(strap_number, ~ boot_sample(weather_df)),  # Create bootstrap samples
-    stats = map(strap_sample, compute_stats)  # Compute r^2 and log(beta0 * beta1)
+    strap_sample = map(strap_number, ~ boot_sample(weather_df)),  
+    stats = map(strap_sample, compute_stats)
   )
 ```
 
+5.  Extract results into a tidy format.
+
 ``` r
-# Extract results into a tidy format
-boot_results <- boot_straps %>%
-  unnest_wider(stats)  # Unpack the results
+boot_results = 
+  boot_straps |>
+  unnest_wider(stats)
 ```
+
+6.  Calculate the 95% confidence intervals for r^2 and log(beta0 \*
+    beta1).
+
+``` r
+ci_r_squared = quantile(boot_results$r_squared, c(0.025, 0.975))
+ci_log_beta0_beta1 = quantile(boot_results$log_beta0_beta1, c(0.025, 0.975))
+
+cat("95% CI for r^2: ", ci_r_squared, "\n")
+```
+
+    ## 95% CI for r^2:  0.8945701 0.9271042
+
+``` r
+cat("95% CI for log(beta0 * beta1): ", ci_log_beta0_beta1, "\n")
+```
+
+    ## 95% CI for log(beta0 * beta1):  1.964166 2.058364
+
+7.  Plot distributions of two estimates (r^2 and log(beta0 \* beta1))
+
+``` r
+ggplot(boot_results, aes(x = r_squared)) +
+  geom_histogram(binwidth = 0.01, color = "black", fill = "blue", alpha = 0.7) +
+  labs(title = "Bootstrap Distribution of r^2", x = "r^2", y = "Frequency") +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+![](homework6_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
+ggplot(boot_results, aes(x = log_beta0_beta1)) +
+  geom_histogram(binwidth = 0.05, color = "black", fill = "red", alpha = 0.7) +
+  labs(title = "Bootstrap Distribution of log(beta0 * beta1)", x = "log(beta0 * beta1)", y = "Frequency") +
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+![](homework6_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
 
 ## Problem 2
 
