@@ -158,9 +158,10 @@ homocide_data =
   )
 ```
 
-2.  Logistic Regression for Baltimore, MD use the `glm` function to fit
-    a logistic regression with resolved vs unresolved as the outcome and
-    victim age, sex and race as predictors.
+2.  Logistic Regression for Baltimore, MD  
+
+use the `glm` function to fit a logistic regression with resolved vs
+unresolved as the outcome and victim age, sex and race as predictors.
 
 ``` r
 baltimore_data =
@@ -175,6 +176,10 @@ baltimore_model = glm(
 saveRDS(baltimore_model, file = "model/baltimore_glm_model.rds")
 ```
 
+3.  For Baltimore,MD: obtain the estimate and confidence interval of the
+    adjusted odds ratio for solving homicides comparing male victims to
+    female victims keeping all other variables fixed.
+
 ``` r
 baltimore_loaded_model = readRDS("model/baltimore_glm_model.rds")
 
@@ -185,17 +190,15 @@ baltimore_or =
     OR = exp(estimate),
     CI_lower = exp(estimate - 1.96 * std.error),
     CI_upper = exp(estimate + 1.96 * std.error)
-  ) |>
-  knitr::kable(digits = 3)
+  )
 
-print(baltimore_or)
+baltimore_or |>
+  knitr::kable(digits = 3)
 ```
 
-    ## 
-    ## 
-    ## |term           | estimate| std.error| statistic| p.value|    OR| CI_lower| CI_upper|
-    ## |:--------------|--------:|---------:|---------:|-------:|-----:|--------:|--------:|
-    ## |victim_sexMale |   -0.204|     0.032|     -6.38|       0| 0.816|    0.766|    0.868|
+| term           | estimate | std.error | statistic | p.value |    OR | CI_lower | CI_upper |
+|:---------------|---------:|----------:|----------:|--------:|------:|---------:|---------:|
+| victim_sexMale |   -0.204 |     0.032 |     -6.38 |       0 | 0.816 |    0.766 |    0.868 |
 
 Logistic Regression for All Cities. run glm for each of the cities in
 your dataset, and extract the adjusted odds ratio (and CI) for solving
@@ -273,9 +276,13 @@ city_models |>
 | Tulsa, OK          | victim_sexMale | 0.976 |    0.614 |    1.552 |   0.917 |
 | Washington, DC     | victim_sexMale | 0.691 |    0.469 |    1.018 |   0.062 |
 
+visualize the results by plotting the ORs and confidence intervals for
+each city and organize cities according to estimated OR.
+
 ``` r
-city_models |> 
-  ggplot(aes(x = reorder(city_state, OR), y = OR)) +
+city_models |>
+  mutate(city_state = fct_reorder(city_state, OR)) |>
+  ggplot(aes(x = city_state, y = OR)) +
   geom_point() +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +
   coord_flip() +
