@@ -217,6 +217,9 @@ city_models |>
 
 
 ## Problem 3
+
+1. Load the dataset and checking for missing data to ensure the models fitting go well.
+
 ```{r}
 birthweight_data = read_csv("./data/birthweight.csv")
 
@@ -239,20 +242,21 @@ str(birthweight_data)
 ```
 
 
+2. Fit the model.
+
+I proposed a regression model for birthweight. Also, I added residuals to the dataset and plotting them against fitted values.
 ```{r}
-# Fit the model
 birthweight_model = lm(bwt ~ gaweeks + blength + bhead + delwt + momage + smoken, 
                         data = birthweight_data)
 
-# View the summary of the model
 summary(birthweight_model)
 
-# Add predictions and residuals to the dataset
+
 birthweight_data = birthweight_data |>
   add_predictions(birthweight_model) |>
   add_residuals(birthweight_model)
 
-# Plot residuals against fitted values
+
 ggplot(birthweight_data, aes(x = pred, y = resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
@@ -264,6 +268,7 @@ ggplot(birthweight_data, aes(x = pred, y = resid)) +
 ```
 
 
+3. Build model1 and model2 according to the requirement
 ```{r}
 model1 = lm(bwt ~ blength + gaweeks, data = birthweight_data)
 summary(model1)
@@ -275,14 +280,14 @@ summary(model2)
 
 
 
-
+4. Make comparison between 3 models in terms of the cross-validated prediction error
 ```{r}
 cv_results = 
   crossv_mc(birthweight_data, n = 100) |>
   mutate(
     train = map(train, as_tibble),
     test = map(test, as_tibble),
-    model_proposed  = map(train, \(df) lm(bwt ~ gaweeks + blength + bhead + delwt + momage + smoken, data = birthweight_data)),
+    model_proposed  = map(train, \(df) lm(bwt ~ gaweeks + blength + bhead + delwt + momage + smoken + bhead * blength * babysex, data = birthweight_data)),
     model1  = map(train, \(df) lm(bwt ~ blength + gaweeks, data = birthweight_data)),
     model2  = map(train, \(df) lm(bwt ~ bhead + blength + babysex + bhead * blength + blength * babysex + bhead * babysex + bhead * blength * babysex, data = birthweight_data)),
     mse_proposed = map2_dbl(model_proposed, test, \(mod, df) rmse(model = mod, data = birthweight_data)),
@@ -298,6 +303,6 @@ cv_summary <- cv_results %>%
     mse_model2 = mean(mse_model2)
   )
 
-cv_summary |> knitr::kable(digits = 3)
+cv_summary |> knitr::kable(digits = 4)
 ```
 
